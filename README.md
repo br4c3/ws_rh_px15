@@ -1,73 +1,100 @@
-# 로항 Jetson–QCS 통합
-
-이 저장소는 역할을 다음과 같이 분리합니다.
-
-- **Jetson:** `src/`의 ROS 2 노드, PX4 통신, 비행 명령과 미션 실행
-- **노트북:** `qcs/`의 Electron 관제 화면
-- **통신:** Jetson HTTP API (`8765/tcp`)
-
-`rohang_qcs/`는 원본 레퍼런스이며 실행에는 프로젝트에 통합된 `qcs/`를
-사용합니다. 기존 `src/` 내용은 변경하지 않습니다.
+# 설치 방법
 
 ## Jetson
 
-프로젝트를 Jetson에 배포한 후 workspace를 빌드합니다.
+### 1. Ubuntu 버전 확인
+
+```bash
+lsb_release -sc
+```
+
+ROS 2 Humble 바이너리 패키지를 설치하려면 `jammy`(Ubuntu 22.04)가 나와야
+합니다. `focal`(Ubuntu 20.04)에서는 아래 apt 설치 방법을 사용할 수 없습니다.
+
+### 2. ROS 2 apt 저장소 등록
+
+```bash
+sudo apt update
+sudo apt install -y software-properties-common curl
+sudo add-apt-repository universe
+
+sudo curl -sSL \
+  https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+  -o /usr/share/keyrings/ros-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu jammy main" \
+  | sudo tee /etc/apt/sources.list.d/ros2.list
+
+sudo apt update
+```
+
+### 3. ROS 2와 MAVROS 설치
+
+```bash
+sudo apt install -y \
+  ros-humble-ros-base \
+  ros-humble-mavros \
+  ros-humble-mavros-msgs \
+  ros-humble-mavros-extras \
+  python3-colcon-common-extensions \
+  python3-rosdep
+```
+
+설치 확인:
+
+```bash
+source /opt/ros/humble/setup.bash
+python3 -c "import rclpy, mavros_msgs; print('ROS 2 + MAVROS OK')"
+```
+
+### 4. workspace 의존성 설치 및 빌드
 
 ```bash
 cd /path/to/ws_rh_px15
+
+sudo rosdep init 2>/dev/null || true
+rosdep update
+
 source /opt/ros/humble/setup.bash
+rosdep install --from-paths src --ignore-src -r -y
 colcon build --symlink-install
 ```
 
-게이트웨이와 기존 제어 노드를 실행합니다.
+빌드 결과 확인:
 
 ```bash
-./scripts/start_jetson.sh
+source install/setup.bash
+ros2 pkg list | grep guidance
 ```
-
-게이트웨이는 기본적으로 `0.0.0.0:8765`에서 수신합니다. 포트를 변경하려면
-`JETSON_GCS_PORT`, 수신 주소를 제한하려면 `JETSON_GCS_HOST`를 설정합니다.
-기존 `src/` 노드는 현재 운용 절차대로 별도 터미널 또는 launch 파일에서
-실행합니다.
 
 ## 노트북
 
-최초 한 번 Electron 의존성을 설치합니다.
+### 1. Node.js와 npm 설치
+
+```bash
+sudo apt update
+sudo apt install -y nodejs npm
+```
+
+### 2. Electron QCS 의존성 설치
 
 ```bash
 cd /path/to/ws_rh_px15/qcs
 npm install
 ```
 
-Jetson의 기본 HM30 주소는 `192.168.144.26`, 게이트웨이 포트는 `8765`로
-설정되어 있으므로 별도 환경변수 없이 실행합니다.
+### 3. QGroundControl 설치
 
-```bash
-cd /path/to/ws_rh_px15
-./scripts/start_qcs.sh
+QGroundControl AppImage를 다음 위치에 둡니다.
+
+```text
+/home/br4c3/apps/QGroundControl.AppImage
 ```
 
-Jetson 주소가 달라진 경우에만 실행 전에 `JETSON_GCS_URL`을 지정하면 기본값을
-덮어쓸 수 있습니다.
+실행 권한을 부여합니다.
 
 ```bash
-JETSON_GCS_URL='http://다른-Jetson-IP:8765' ./scripts/start_qcs.sh
+chmod +x /home/br4c3/apps/QGroundControl.AppImage
 ```
 
-원격 모드에서는 노트북이 ROS 2, MAVROS, Gazebo 브리지를 실행하지 않습니다.
-텔레메트리 조회와 ARM, 비행 모드, VTOL 전환, Plan 검증·업로드·시작 요청은
-Jetson 게이트웨이로 전달됩니다.
-
-## 연결 확인
-
-노트북에서 다음 명령의 `ok`가 `true`인지 확인합니다.
-
-```bash
-curl http://192.168.144.26:8765/health
-```
-
-응답의 `px4Connected`는 Jetson 게이트웨이가 PX4 토픽을 최근 2초 안에
-수신했는지를 나타냅니다.
-
-SIYI 영상은 제어 API와 분리해 RTSP 또는 GStreamer H.264/H.265 스트림으로
-전송하는 것을 권장합니다.
+다른 위치에 설치했다면 QCS 실행 시 `QGC_PATH`로 경로를 지정할 수 있습니다.
