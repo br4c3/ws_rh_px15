@@ -98,3 +98,19 @@ chmod +x /home/br4c3/apps/QGroundControl.AppImage
 ```
 
 다른 위치에 설치했다면 QCS 실행 시 `QGC_PATH`로 경로를 지정할 수 있습니다.
+
+---
+
+## 이상한 빌드 버그
+
+```bash
+cd ~/ws_rh_px15
+
+source /opt/ros/humble/setup.bash
+
+rm -rf build/mavros_msgs install/mavros_msgs
+
+colcon build \
+  --packages-select mavros_msgs \
+  --symlink-install
+```
