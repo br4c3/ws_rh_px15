@@ -11,4 +11,7 @@ if [[ ! -d "$QCS_ROOT/node_modules" ]]; then
 fi
 
 cd "$QCS_ROOT"
+export ELECTRON_OZONE_PLATFORM_HINT="${ELECTRON_OZONE_PLATFORM_HINT:-x11}"
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
+export QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-opengl}"
 exec npm start

@@ -24,6 +24,10 @@ const jetsonGcsUrl = (
   || "http://192.168.144.26:8765"
 ).replace(/\/+$/, "");
 
+if (process.platform === "linux") {
+  app.commandLine.appendSwitch("ozone-platform", "x11");
+}
+
 const contentTypes = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -414,7 +418,11 @@ function launchQGroundControl() {
   qgcProcess = spawn(executable, [], {
     cwd: path.dirname(executable),
     stdio: "ignore",
-    env: process.env,
+    env: {
+      ...process.env,
+      QT_QPA_PLATFORM: process.env.QT_QPA_PLATFORM || "xcb",
+      QSG_RHI_BACKEND: process.env.QSG_RHI_BACKEND || "opengl",
+    },
   });
 
   qgcProcess.once("spawn", () => {
