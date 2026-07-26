@@ -39,12 +39,19 @@ cd /path/to/ws_rh_px15/qcs
 npm install
 ```
 
-Jetson의 HM30/LAN 주소를 사용해 실행합니다.
+Jetson의 기본 HM30 주소는 `192.168.144.26`, 게이트웨이 포트는 `8765`로
+설정되어 있으므로 별도 환경변수 없이 실행합니다.
 
 ```bash
 cd /path/to/ws_rh_px15
-export JETSON_GCS_URL='http://192.168.1.20:8765'
 ./scripts/start_qcs.sh
+```
+
+Jetson 주소가 달라진 경우에만 실행 전에 `JETSON_GCS_URL`을 지정하면 기본값을
+덮어쓸 수 있습니다.
+
+```bash
+JETSON_GCS_URL='http://다른-Jetson-IP:8765' ./scripts/start_qcs.sh
 ```
 
 원격 모드에서는 노트북이 ROS 2, MAVROS, Gazebo 브리지를 실행하지 않습니다.
@@ -56,7 +63,7 @@ Jetson 게이트웨이로 전달됩니다.
 노트북에서 다음 명령의 `ok`가 `true`인지 확인합니다.
 
 ```bash
-curl "$JETSON_GCS_URL/health"
+curl http://192.168.144.26:8765/health
 ```
 
 응답의 `px4Connected`는 Jetson 게이트웨이가 PX4 토픽을 최근 2초 안에

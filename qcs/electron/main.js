@@ -19,7 +19,10 @@ const koreanFontAssets = path.join(
   "@fontsource",
   "noto-sans-kr",
 );
-const jetsonGcsUrl = (process.env.JETSON_GCS_URL || "").replace(/\/+$/, "");
+const jetsonGcsUrl = (
+  process.env.JETSON_GCS_URL
+  || "http://192.168.144.26:8765"
+).replace(/\/+$/, "");
 
 const contentTypes = {
   ".css": "text/css; charset=utf-8",
@@ -770,12 +773,6 @@ ipcMain.on("px4:command", (_event, command) => {
 });
 
 app.whenReady().then(async () => {
-  if (!jetsonGcsUrl) {
-    console.error("JETSON_GCS_URL is required.");
-    app.quit();
-    return;
-  }
-
   const baseUrl = await startServer();
   console.log(`[Jetson gateway] Remote mode: ${jetsonGcsUrl}`);
   startJetsonTelemetry();
