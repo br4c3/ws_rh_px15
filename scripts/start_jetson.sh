@@ -17,8 +17,12 @@ if [[ ! -f "$WORKSPACE_SETUP" ]]; then
   exit 1
 fi
 
+# ROS/colcon setup scripts inspect optional variables such as
+# AMENT_TRACE_SETUP_FILES. Temporarily disable nounset while sourcing them.
+set +u
 source "$ROS_SETUP"
 source "$WORKSPACE_SETUP"
+set -u
 
 cd "$PROJECT_ROOT/qcs"
 exec python3 bridge/jetson_gateway.py
