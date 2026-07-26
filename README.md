@@ -100,7 +100,8 @@ chmod +x /home/br4c3/apps/QGroundControl.AppImage
 다른 위치에 설치했다면 QCS 실행 시 `QGC_PATH`로 경로를 지정할 수 있습니다.
 
 Electron과 QGroundControl은 Wayland/Vulkan 호환 문제를 피하기 위해 기본적으로
-XWayland(`xcb`) 및 OpenGL 모드로 실행됩니다.
+XWayland(`xcb`) 모드로 실행됩니다. Electron의 VA-API/GPU 가속은 비활성화하고
+QGroundControl은 OpenGL 렌더러를 사용합니다.
 
 ---
 

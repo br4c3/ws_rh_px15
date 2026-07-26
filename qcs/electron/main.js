@@ -26,6 +26,12 @@ const jetsonGcsUrl = (
 
 if (process.platform === "linux") {
   app.commandLine.appendSwitch("ozone-platform", "x11");
+  app.commandLine.appendSwitch("disable-gpu");
+  app.commandLine.appendSwitch("disable-gpu-compositing");
+  app.commandLine.appendSwitch(
+    "disable-features",
+    "VaapiVideoDecoder,VaapiVideoEncoder",
+  );
 }
 
 const contentTypes = {
