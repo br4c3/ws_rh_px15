@@ -67,6 +67,31 @@ source install/setup.bash
 ros2 pkg list | grep guidance
 ```
 
+### 5. PX4 DDS와 Jetson 게이트웨이 실행
+
+기본 UDP 연결에서는 다음 명령 하나로 Micro XRCE-DDS Agent와 게이트웨이를
+함께 실행합니다.
+
+```bash
+./scripts/start_jetson.sh
+```
+
+기본값은 UDP 포트 `8888`입니다. PX4가 Jetson 시리얼 포트에 연결되어 있다면:
+
+```bash
+PX4_DDS_TRANSPORT=serial \
+PX4_DDS_DEVICE=/dev/ttyTHS1 \
+PX4_DDS_BAUDRATE=921600 \
+./scripts/start_jetson.sh
+```
+
+연결 확인:
+
+```bash
+curl http://127.0.0.1:8765/health
+ros2 topic echo /fmu/out/vehicle_status --once
+```
+
 ## 노트북
 
 ### 1. Node.js와 npm 설치
@@ -85,23 +110,26 @@ npm install
 
 ### 3. QGroundControl 설치
 
-QGroundControl AppImage를 다음 위치에 둡니다.
+QGroundControl AppImage를 사용자의 `Downloads` 디렉터리에 둡니다.
 
 ```text
-/home/br4c3/apps/QGroundControl.AppImage
+~/Downloads/QGroundControl-x86_64.AppImage
 ```
 
 실행 권한을 부여합니다.
 
 ```bash
-chmod +x /home/br4c3/apps/QGroundControl.AppImage
+chmod +x ~/Downloads/QGroundControl-x86_64.AppImage
 ```
 
+QCS는 `Downloads`와 `~/apps`의 일반적인 AppImage 이름을 자동으로 찾습니다.
 다른 위치에 설치했다면 QCS 실행 시 `QGC_PATH`로 경로를 지정할 수 있습니다.
 
-Electron과 QGroundControl은 Wayland/Vulkan 호환 문제를 피하기 위해 기본적으로
-XWayland(`xcb`) 모드로 실행됩니다. Electron의 VA-API/GPU 가속은 비활성화하고
-QGroundControl은 OpenGL 렌더러를 사용합니다.
+Electron은 현재 데스크톱 세션의 Wayland/X11 환경을 자동으로 선택합니다.
+QGroundControl은 호환성을 위해 XWayland(`xcb`)와 OpenGL 렌더러를 사용합니다.
+
+Wayland에서는 화면 공유 창의 반복 표시를 막기 위해 QGC 화면 미러링이 기본적으로
+꺼집니다. 미러링이 필요하면 `QGC_CAPTURE=1 ./scripts/start_qcs.sh`로 실행합니다.
 
 ---
 

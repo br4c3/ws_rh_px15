@@ -8,6 +8,7 @@ const {
 } = require("electron");
 const { spawn } = require("node:child_process");
 const http = require("node:http");
+const os = require("node:os");
 const path = require("node:path");
 const fs = require("node:fs");
 
@@ -25,12 +26,15 @@ const jetsonGcsUrl = (
 ).replace(/\/+$/, "");
 
 if (process.platform === "linux") {
-  app.commandLine.appendSwitch("ozone-platform", "x11");
-  app.commandLine.appendSwitch("disable-gpu");
-  app.commandLine.appendSwitch("disable-gpu-compositing");
+  app.disableHardwareAcceleration();
+  app.commandLine.appendSwitch(
+    "ozone-platform-hint",
+    process.env.ELECTRON_OZONE_PLATFORM_HINT || "auto",
+  );
+  app.commandLine.appendSwitch("disable-vulkan");
   app.commandLine.appendSwitch(
     "disable-features",
-    "VaapiVideoDecoder,VaapiVideoEncoder",
+    "VaapiVideoDecoder,VaapiVideoEncoder,WebRTCPipeWireCapturer",
   );
 }
 
@@ -396,7 +400,19 @@ function startCameraBridge() {
 }
 
 function qgcExecutablePath() {
-  return process.env.QGC_PATH || "/home/br4c3/apps/QGroundControl.AppImage";
+  if (process.env.QGC_PATH) {
+    return process.env.QGC_PATH;
+  }
+
+  const homeDirectory = os.homedir();
+  const candidates = [
+    path.join(homeDirectory, "Downloads", "QGroundControl-x86_64.AppImage"),
+    path.join(homeDirectory, "Downloads", "QGroundControl.AppImage"),
+    path.join(homeDirectory, "apps", "QGroundControl.AppImage"),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate))
+    || candidates[0];
 }
 
 function launchQGroundControl() {
@@ -458,6 +474,18 @@ function launchQGroundControl() {
 
 function startQgcCapture() {
   if (qgcCaptureTimer) return;
+
+  const isWaylandSession = (
+    process.env.XDG_SESSION_TYPE === "wayland"
+    || Boolean(process.env.WAYLAND_DISPLAY)
+  );
+  if (isWaylandSession && process.env.QGC_CAPTURE !== "1") {
+    console.log(
+      "[QGC capture] Disabled on Wayland to prevent repeated screen-share prompts. "
+      + "Set QGC_CAPTURE=1 to enable it.",
+    );
+    return;
+  }
 
   qgcCaptureTimer = setInterval(async () => {
     if (qgcCaptureBusy) {
