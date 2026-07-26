@@ -362,15 +362,31 @@ function startClock() {
 function updateSitlTelemetry(data) {
   lastSitlTelemetry = data;
   sitlConnected = Boolean(data.connected);
+  const gatewayConnected = data.gatewayConnected !== false;
 
   const connection = document.querySelector(".connection-pill");
   const connectionLabel = document.querySelector("#connectionLabel");
   connection.classList.toggle("sitl", sitlConnected);
-  connectionLabel.textContent = sitlConnected ? "SITL 연결됨" : "연결 대기";
+  connection.classList.toggle("error", !gatewayConnected);
+  connection.classList.toggle(
+    "waiting",
+    gatewayConnected && !sitlConnected,
+  );
+  connection.title = data.gatewayError
+    || (gatewayConnected && !sitlConnected
+      ? "Jetson 게이트웨이는 연결됐지만 PX4 DDS 메시지가 없습니다."
+      : "");
+  connectionLabel.textContent = sitlConnected
+    ? "PX4 연결됨"
+    : gatewayConnected
+      ? "PX4 DDS 대기"
+      : "Jetson 연결 실패";
 
   if (!sitlConnected) {
     currentFlightMode = "";
-    document.querySelector("#flightMode").textContent = "PX4 오프라인";
+    document.querySelector("#flightMode").textContent = gatewayConnected
+      ? "PX4 DDS 대기"
+      : "Jetson 오프라인";
     ["gps", "throttle", "altitude", "airspeed"].forEach((id) => {
       document.querySelector(`#${id}Value`).textContent = "—";
     });

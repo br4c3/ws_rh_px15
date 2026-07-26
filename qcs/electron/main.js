@@ -66,6 +66,7 @@ let qgcCaptureSourcesLogged = false;
 let lastTelemetry;
 let jetsonPollTimer;
 let jetsonRequestActive = false;
+let lastJetsonConnectionState;
 
 function resolveRequestPath(requestUrl) {
   const url = new URL(requestUrl, "http://127.0.0.1");
@@ -309,17 +310,44 @@ async function jetsonRequest(requestPath, options = {}) {
 function startJetsonTelemetry() {
   if (!jetsonGcsUrl || jetsonPollTimer) return;
 
+  const logConnectionState = (state, detail) => {
+    if (lastJetsonConnectionState === state) return;
+    lastJetsonConnectionState = state;
+
+    if (state === "connected") {
+      console.log(`[Jetson gateway] PX4 DDS connected via ${jetsonGcsUrl}`);
+    } else if (state === "waiting") {
+      console.warn(
+        `[Jetson gateway] Gateway reachable at ${jetsonGcsUrl}, `
+        + "waiting for PX4 DDS messages",
+      );
+    } else {
+      console.error(`[Jetson gateway] Unreachable at ${jetsonGcsUrl}: ${detail}`);
+    }
+  };
+
   const poll = async () => {
     if (jetsonRequestActive) return;
     jetsonRequestActive = true;
     try {
       const telemetry = await jetsonRequest("/status", { timeout: 1500 });
-      lastTelemetry = telemetry;
-      broadcast("px4:telemetry", telemetry);
+      const enrichedTelemetry = {
+        ...telemetry,
+        gatewayConnected: true,
+        gatewayUrl: jetsonGcsUrl,
+      };
+      lastTelemetry = enrichedTelemetry;
+      logConnectionState(
+        enrichedTelemetry.connected ? "connected" : "waiting",
+      );
+      broadcast("px4:telemetry", enrichedTelemetry);
     } catch (error) {
+      logConnectionState("unreachable", error.message);
       broadcast("px4:telemetry", {
         type: "telemetry",
         connected: false,
+        gatewayConnected: false,
+        gatewayUrl: jetsonGcsUrl,
         gatewayError: error.message,
       });
     } finally {

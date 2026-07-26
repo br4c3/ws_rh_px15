@@ -10,8 +10,8 @@
     "dist": "electron-builder"
   },
   "devDependencies": {
-    "electron": "^37.2.3",
-    "electron-builder": "^26.0.12",
+    "electron": "^43.2.0",
+    "electron-builder": "^22.14.13",
     "leaflet": "^1.9.4",
     "swagger-ui-dist": "^5.27.1"
   },

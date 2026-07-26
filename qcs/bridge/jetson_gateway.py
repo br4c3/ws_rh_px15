@@ -247,16 +247,43 @@ class GatewayHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/health":
             telemetry = self.server.gateway.node.telemetry()
+            last_message = self.server.gateway.node.last_px4_message
+            last_message_age = (
+                round(time.monotonic() - last_message, 3)
+                if last_message > 0.0
+                else None
+            )
             self.send_json(
                 200,
                 {
                     "ok": True,
                     "px4Connected": telemetry.get("connected", False),
+                    "lastPx4MessageAgeSeconds": last_message_age,
+                    "dds": {
+                        "transport": os.environ.get(
+                            "PX4_DDS_TRANSPORT",
+                            "unknown",
+                        ),
+                        "port": int(os.environ.get("PX4_DDS_PORT", "8888")),
+                        "device": os.environ.get(
+                            "PX4_DDS_DEVICE",
+                            "/dev/ttyTHS1",
+                        ),
+                        "baudrate": int(
+                            os.environ.get("PX4_DDS_BAUDRATE", "921600")
+                        ),
+                    },
                 },
             )
             return
         if self.path == "/status":
-            self.send_json(200, self.server.gateway.node.telemetry())
+            self.send_json(
+                200,
+                {
+                    **self.server.gateway.node.telemetry(),
+                    "gatewayConnected": True,
+                },
+            )
             return
         self.send_json(404, {"ok": False, "error": "Not found"})
 
