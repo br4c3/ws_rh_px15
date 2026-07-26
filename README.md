@@ -69,21 +69,34 @@ ros2 pkg list | grep guidance
 
 ### 5. PX4 DDS와 Jetson 게이트웨이 실행
 
-기본 UDP 연결에서는 다음 명령 하나로 Micro XRCE-DDS Agent와 게이트웨이를
-함께 실행합니다.
+이 프로젝트의 기본 연결은 PX4 TELEM2와 Jetson UART
+(`/dev/ttyTHS1`, `921600 baud`)입니다. 다음 명령 하나로 시리얼
+Micro XRCE-DDS Agent와 게이트웨이를 함께 실행합니다.
 
 ```bash
 ./scripts/start_jetson.sh
 ```
 
-기본값은 UDP 포트 `8888`입니다. PX4가 Jetson 시리얼 포트에 연결되어 있다면:
+다른 시리얼 장치나 baudrate를 사용한다면:
 
 ```bash
 PX4_DDS_TRANSPORT=serial \
-PX4_DDS_DEVICE=/dev/ttyTHS1 \
-PX4_DDS_BAUDRATE=921600 \
+PX4_DDS_DEVICE=/dev/OTHER_DEVICE \
+PX4_DDS_BAUDRATE=OTHER_BAUDRATE \
 ./scripts/start_jetson.sh
 ```
+
+Ethernet/UDP로 연결하는 환경에서만 다음처럼 UDP 모드를 지정합니다.
+
+```bash
+PX4_DDS_TRANSPORT=udp4 \
+PX4_DDS_PORT=8888 \
+./scripts/start_jetson.sh
+```
+
+PX4 쪽에서는 TELEM2를 사용 중인 MAVLink 인스턴스를 비활성화하고,
+`UXRCE_DDS_CFG`를 `TELEM2`로 설정한 뒤 재부팅해야 합니다. Jetson과 PX4의
+baudrate는 모두 `921600`으로 일치해야 합니다.
 
 연결 확인:
 
