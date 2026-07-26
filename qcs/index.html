@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="PX4 기체의 비행 상태와 임무 모듈을 한눈에 확인하는 ARECADA Ground Control Station"
+    />
+    <title>ARECADA · 지상 관제</title>
+    <link rel="stylesheet" href="/vendor/noto-sans-kr/400.css" />
+    <link rel="stylesheet" href="/vendor/noto-sans-kr/500.css" />
+    <link rel="stylesheet" href="/vendor/noto-sans-kr/600.css" />
+    <link rel="stylesheet" href="/vendor/noto-sans-kr/700.css" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="ARECADA 홈">
+          <span class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+          <span>
+            <strong>ARECADA</strong>
+            <small>지상 관제 시스템</small>
+          </span>
+        </a>
+
+        <div class="topbar-actions">
+          <a class="swagger-link" href="swagger.html" title="API 문서 열기">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3M8 12h8M12 8v8"></path>
+            </svg>
+            <span>API 문서</span>
+          </a>
+          <div class="connection-pill">
+            <i></i>
+            <span id="connectionLabel">연결 대기</span>
+          </div>
+          <time id="clock">--:--:--</time>
+        </div>
+        <div class="window-controls" aria-label="창 제어">
+          <button id="minimizeWindow" type="button" aria-label="최소화" title="최소화">
+            <svg viewBox="0 0 12 12"><path d="M2 8.5h8"></path></svg>
+          </button>
+          <button id="maximizeWindow" type="button" aria-label="최대화" title="최대화">
+            <svg class="maximize-icon" viewBox="0 0 12 12"><rect x="2.5" y="2.5" width="7" height="7"></rect></svg>
+            <svg class="restore-icon" viewBox="0 0 12 12"><path d="M4 3h5v5M3 4h5v5H3z"></path></svg>
+          </button>
+          <button class="close" id="closeWindow" type="button" aria-label="닫기" title="닫기">
+            <svg viewBox="0 0 12 12"><path d="m2.5 2.5 7 7m0-7-7 7"></path></svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <section class="workspace">
+          <div class="display-panel panel">
+            <div class="display-toolbar">
+              <div>
+                <span class="live-badge"><i></i> 실시간</span>
+                <span class="camera-name">카메라 01 · 하향</span>
+              </div>
+              <div class="flight-strip">
+                <span class="flight-strip-label">비행 모드</span>
+                <button class="mode-card" id="modeCard" type="button" aria-label="비행 모드 변경">
+                  <span class="pulse-ring"><i></i></span>
+                  <strong id="flightMode">PX4 오프라인</strong>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+                </button>
+                <span class="flight-strip-label">VTOL 상태</span>
+                <div class="segmented" id="vtolControl" aria-label="VTOL 비행 상태">
+                  <button data-state="FW">고정익</button>
+                  <button data-state="TRANSITION">전환</button>
+                  <button class="active" data-state="MC">멀티콥터</button>
+                </div>
+              </div>
+              <div class="view-tabs" role="tablist">
+                <button class="active" data-view="camera" role="tab">카메라</button>
+                <button data-view="qgc" role="tab">QGC 지도</button>
+                <button data-view="sensors" role="tab">센서</button>
+              </div>
+            </div>
+
+            <div class="viewport" id="viewport">
+              <div class="camera-view view active" data-panel="camera">
+                <img id="gazeboCamera" alt="Gazebo 기체 하향 카메라 실시간 영상" />
+                <div class="reticle"><span></span><i></i><b></b></div>
+                <div class="hud left-hud">
+                  <span>고도</span><strong id="hudAltitude">—</strong><small>미터</small>
+                </div>
+                <div class="hud right-hud">
+                  <span>속도</span><strong id="hudSpeed">—</strong><small>미터/초</small>
+                </div>
+                <div class="camera-offline" id="cameraOffline">
+                  <strong>카메라 대기 중</strong>
+                  <span>Gazebo 영상 토픽을 기다리고 있습니다</span>
+                </div>
+                <div class="camera-meta" id="cameraMeta">시뮬레이션 · 대기 중</div>
+              </div>
+
+              <div class="map-view view" data-panel="qgc">
+                <img class="qgc-mirror" id="qgcMirror" alt="QGroundControl 실시간 화면" />
+                <div class="leaflet-map" id="qgcMap" aria-label="실제 임무 지도"></div>
+                <div class="map-grid"></div>
+                <svg class="route" viewBox="0 0 900 500" preserveAspectRatio="none" aria-label="임무 비행 경로">
+                  <path id="missionRoute" d=""></path>
+                  <g id="waypoints"></g>
+                </svg>
+                <div class="drone-marker" aria-label="현재 기체 위치">
+                  <svg viewBox="0 0 48 48"><path d="M24 4 37 40 24 34 11 40Z"></path></svg>
+                </div>
+                <div class="map-label" id="mapLabel">QGC 미션 대기 중</div>
+                <button class="qgc-mirror-toggle" id="qgcMirrorToggle" type="button">
+                  QGC 실시간 보기
+                </button>
+                <div class="qgc-panel">
+                  <div class="qgc-panel-heading">
+                    <span class="qgc-mark">Q</span>
+                    <span>
+                      <strong>QGroundControl</strong>
+                      <small>PX4 MAVLink 관제소</small>
+                    </span>
+                  </div>
+                  <div class="qgc-link-state">
+                    <i id="qgcStatusDot"></i>
+                    <span>
+                      <strong id="qgcStatus">대기 중</strong>
+                      <small id="qgcStatusDetail">UDP 14550 · PX4 SITL</small>
+                    </span>
+                  </div>
+                  <button id="launchQgcButton" type="button">QGroundControl 열기</button>
+                </div>
+                <div class="plan-panel">
+                  <div class="plan-heading">
+                    <span>미션 계획</span>
+                    <strong id="planCount">경유점 0개</strong>
+                  </div>
+                  <button class="plan-file" id="selectPlanButton" type="button">
+                    <span>QGC 계획 파일 선택</span>
+                    <small id="planFileName">선택된 계획 없음</small>
+                  </button>
+                  <button class="tray-plan-button" id="trayPlanButton" type="button">
+                    트레이 착륙 계획 생성
+                  </button>
+                  <div class="plan-status">
+                    <i id="planStatusDot"></i>
+                    <span id="planStatus">계획 파일을 선택하세요</span>
+                  </div>
+                  <div class="plan-actions">
+                    <button id="uploadPlanButton" type="button" disabled>업로드</button>
+                    <button class="start" id="startPlanButton" type="button" disabled>시동 및 시작</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sensor-view view" data-panel="sensors">
+                <header class="sensor-header">
+                  <div><span>PX4 센서 및 추정기</span><strong id="estimatorHealth">대기 중</strong></div>
+                  <div>
+                    <small id="missionControlStatus">Jetson 미션 · 대기 중</small>
+                    <small id="px4SourceTime">PX4 시간 · 대기 중</small>
+                  </div>
+                </header>
+                <div class="sensor-content">
+                  <section class="sensor-section">
+                    <h3>원시 IMU</h3>
+                    <div class="vector-grid">
+                      <article><span>가속도 X</span><strong id="accelX">0.000</strong><small>m/s²</small></article>
+                      <article><span>가속도 Y</span><strong id="accelY">0.000</strong><small>m/s²</small></article>
+                      <article><span>가속도 Z</span><strong id="accelZ">0.000</strong><small>m/s²</small></article>
+                      <article><span>각속도 X</span><strong id="gyroX">0.000</strong><small>rad/s</small></article>
+                      <article><span>각속도 Y</span><strong id="gyroY">0.000</strong><small>rad/s</small></article>
+                      <article><span>각속도 Z</span><strong id="gyroZ">0.000</strong><small>rad/s</small></article>
+                    </div>
+                  </section>
+                  <section class="sensor-section">
+                    <h3>자세 추정값</h3>
+                    <div class="attitude-values">
+                      <div><span>롤</span><strong id="estimateRoll">0.000°</strong></div>
+                      <div><span>피치</span><strong id="estimatePitch">0.000°</strong></div>
+                      <div><span>요</span><strong id="estimateYaw">0.000°</strong></div>
+                    </div>
+                  </section>
+                  <section class="sensor-section">
+                    <h3>지역 NED 추정값</h3>
+                    <div class="data-table">
+                      <div><span>위치</span><strong id="estimatePosition">북 0.0 · 동 0.0 · 하 0.0 m</strong></div>
+                      <div><span>속도</span><strong id="estimateVelocity">북 0.0 · 동 0.0 · 하 0.0 m/s</strong></div>
+                      <div><span>수평 오차</span><strong id="horizontalError">0.00 m</strong></div>
+                      <div><span>수직 오차</span><strong id="verticalError">0.00 m</strong></div>
+                    </div>
+                  </section>
+                  <section class="sensor-section">
+                    <h3>EKF 융합 상태</h3>
+                    <div class="flag-grid">
+                      <span id="flagTilt">기울기 정렬</span>
+                      <span id="flagYaw">요 정렬</span>
+                      <span id="flagGnss">GNSS 위치</span>
+                      <span id="flagBaro">기압 고도</span>
+                      <span id="flagDeadReckoning">추측 항법</span>
+                      <span id="flagClipping">IMU 포화</span>
+                    </div>
+                  </section>
+                  <section class="sensor-analysis">
+                    <article class="analysis-panel imu-history">
+                      <header>
+                        <span>IMU 기록</span>
+                        <small>최근 10초 · X / Y / Z</small>
+                      </header>
+                      <div class="axis-legend" aria-label="그래프 축 범례">
+                        <span class="axis-x">X</span>
+                        <span class="axis-y">Y</span>
+                        <span class="axis-z">Z</span>
+                      </div>
+                      <div class="chart-stack">
+                        <div>
+                          <span>가속도 <small>m/s²</small></span>
+                          <canvas id="accelChart"></canvas>
+                        </div>
+                        <div>
+                          <span>각속도 <small>rad/s</small></span>
+                          <canvas id="gyroChart"></canvas>
+                        </div>
+                      </div>
+                    </article>
+                    <article class="analysis-panel gps-estimate-plot">
+                      <header>
+                        <span>GPS / EKF 전역 위치</span>
+                        <small>WGS84 · 원시 / 추정</small>
+                      </header>
+                      <canvas id="gpsEstimateChart"></canvas>
+                      <div class="tracking-legend">
+                        <span><i class="gps-raw"></i>원시 GPS</span>
+                        <span><i class="ekf-global"></i>EKF 추정</span>
+                        <strong id="gpsEstimateError">거리 —</strong>
+                      </div>
+                      <div class="global-position-values">
+                        <div><span>GPS</span><code id="rawGpsPosition">—</code></div>
+                        <div><span>EKF</span><code id="ekfGlobalPosition">—</code></div>
+                      </div>
+                    </article>
+                    <article class="analysis-panel estimator-log">
+                      <header>
+                        <span>추정기 로그</span>
+                        <small>실시간</small>
+                      </header>
+                      <div class="log-table" id="estimatorLog">
+                        <div class="empty-log">PX4 데이터를 기다리는 중입니다.</div>
+                      </div>
+                    </article>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="telemetry-grid" id="telemetryGrid"></div>
+        </section>
+      </main>
+      <footer class="statusbar">
+        <span><i></i> PX4 SITL</span>
+          <span>◉ MAVLink :14550</span>
+        <span class="status-spacer"></span>
+        <span>Gazebo 카메라</span>
+        <span>ROS 2 Humble</span>
+        <span>ARECADA GCS</span>
+      </footer>
+    </div>
+
+    <div class="confirm-backdrop" id="confirmBackdrop" hidden>
+      <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <h2 id="confirmTitle">미션 실행 확인</h2>
+        <p id="confirmMessage"></p>
+        <div>
+          <button id="confirmCancel" type="button">취소</button>
+          <button class="primary" id="confirmAccept" type="button">실행</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script src="/vendor/leaflet/leaflet.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

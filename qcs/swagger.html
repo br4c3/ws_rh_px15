@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ARECADA API · Swagger</title>
+    <link rel="stylesheet" href="/vendor/swagger-ui/swagger-ui.css" />
+    <style>
+      body { margin: 0; background: #edf3f5; }
+      .swagger-ui .topbar { background: #07151d; }
+      .swagger-ui .topbar-wrapper img { display: none; }
+      .swagger-ui .topbar-wrapper::before {
+        content: "ARECADA · API REFERENCE";
+        color: white;
+        font: 700 14px/1 system-ui, sans-serif;
+        letter-spacing: .14em;
+      }
+      .swagger-ui .info .title { color: #152a35; }
+      .swagger-ui .opblock.opblock-get { border-color: #20b9d3; background: rgba(32,185,211,.08); }
+      .swagger-ui .opblock.opblock-get .opblock-summary-method { background: #0a8fae; }
+      .swagger-ui .opblock.opblock-post { border-color: #78b850; background: rgba(120,184,80,.08); }
+      .swagger-ui .opblock.opblock-post .opblock-summary-method { background: #669f42; }
+      .back-link {
+        position: fixed; z-index: 20; right: 22px; top: 12px; padding: 9px 13px;
+        border: 1px solid #41545d; border-radius: 999px; color: white;
+        font: 700 11px system-ui, sans-serif; text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <a class="back-link" href="index.html">← GCS로 돌아가기</a>
+    <div id="swagger-ui"></div>
+    <script src="/vendor/swagger-ui/swagger-ui-bundle.js"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        SwaggerUIBundle({
+          url: "./openapi.yaml",
+          dom_id: "#swagger-ui",
+          deepLinking: true,
+          displayRequestDuration: true,
+          tryItOutEnabled: true,
+          presets: [SwaggerUIBundle.presets.apis],
+        });
+      });
+    </script>
+  </body>
+</html>

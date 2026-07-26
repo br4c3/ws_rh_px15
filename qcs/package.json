@@ -1,0 +1,59 @@
+{
+  "name": "arecada-gcs",
+  "version": "1.0.0",
+  "description": "ARECADA PX4 Ground Control Station desktop application",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^37.2.3",
+    "electron-builder": "^26.0.12",
+    "leaflet": "^1.9.4",
+    "swagger-ui-dist": "^5.27.1"
+  },
+  "build": {
+    "appId": "com.arecada.gcs",
+    "productName": "ARECADA GCS",
+    "asar": true,
+    "files": [
+      "electron/**/*",
+      "bridge/**/*",
+      "index.html",
+      "swagger.html",
+      "openapi.yaml",
+      "styles.css",
+      "app.js",
+      "package.json",
+      "node_modules/swagger-ui-dist/**/*",
+      "node_modules/leaflet/dist/**/*",
+      "node_modules/@fontsource/noto-sans-kr/**/*"
+    ],
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.utilities"
+    }
+  },
+  "allowScripts": {
+    "electron@37.10.3": true
+  },
+  "dependencies": {
+    "@fontsource/noto-sans-kr": "^5.2.8"
+  }
+}

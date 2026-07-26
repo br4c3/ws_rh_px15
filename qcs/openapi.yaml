@@ -1,0 +1,279 @@
+openapi: 3.0.3
+info:
+  title: ARECADA Ground Control API
+  version: 1.0.0
+  description: |
+    ARECADA 웹 관제 화면과 PX4/ROS 2 브리지 사이의 REST API 계약입니다.
+    현재 저장소에는 프론트엔드 데모만 포함되어 있으므로 Try it out 호출에는
+    이 명세를 구현한 API 서버가 필요합니다.
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local ROS bridge
+tags:
+  - name: System
+    description: 연결 및 전체 기체 상태
+  - name: Mission
+    description: 임무 진행 상태
+  - name: Modules
+    description: 임무 모듈 제어
+  - name: Vehicle
+    description: 기체 모드 및 VTOL 상태
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: 브리지 연결 상태 확인
+      operationId: getHealth
+      responses:
+        "200":
+          description: 정상 연결
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /status:
+    get:
+      tags: [System]
+      summary: 대시보드 전체 상태 조회
+      operationId: getStatus
+      responses:
+        "200":
+          description: 최신 기체 및 임무 상태
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroundStationStatus"
+        "503":
+          $ref: "#/components/responses/BridgeUnavailable"
+  /vehicle/flight-mode:
+    post:
+      tags: [Vehicle]
+      summary: PX4 비행 모드 변경
+      operationId: setFlightMode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode:
+                  $ref: "#/components/schemas/FlightMode"
+      responses:
+        "202":
+          description: 모드 변경 명령 접수
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandResult"
+        "409":
+          description: 현재 기체 상태에서 변경할 수 없음
+  /vehicle/vtol-state:
+    post:
+      tags: [Vehicle]
+      summary: VTOL 비행 상태 변경
+      operationId: setVtolState
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [state]
+              properties:
+                state:
+                  $ref: "#/components/schemas/VtolState"
+      responses:
+        "202":
+          description: VTOL 상태 변경 명령 접수
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommandResult"
+  /mission:
+    get:
+      tags: [Mission]
+      summary: 현재 임무 진행 상태 조회
+      operationId: getMission
+      responses:
+        "200":
+          description: 임무 상태
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Mission"
+  /modules:
+    get:
+      tags: [Modules]
+      summary: 전체 모듈 상태 조회
+      operationId: getModules
+      responses:
+        "200":
+          description: 모듈 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Module"
+  /modules/{moduleId}:
+    patch:
+      tags: [Modules]
+      summary: 임무 모듈 활성 상태 변경
+      operationId: updateModule
+      parameters:
+        - name: moduleId
+          in: path
+          required: true
+          description: 모듈 식별자
+          schema:
+            $ref: "#/components/schemas/ModuleId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [active]
+              properties:
+                active:
+                  type: boolean
+                  example: true
+      responses:
+        "200":
+          description: 변경된 모듈 상태
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Module"
+        "404":
+          description: 존재하지 않는 모듈
+components:
+  responses:
+    BridgeUnavailable:
+      description: ROS 2 또는 PX4 브리지 연결 불가
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Health:
+      type: object
+      required: [status, rosConnected, px4Connected]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+          example: ok
+        rosConnected:
+          type: boolean
+          example: true
+        px4Connected:
+          type: boolean
+          example: true
+    FlightMode:
+      type: string
+      enum: [MISSION, OFFBOARD, POSITION, HOLD, RETURN, LAND, TAKEOFF]
+      example: MISSION
+    VtolState:
+      type: string
+      enum: [FW, TRANSITION, MC]
+      example: MC
+    Mission:
+      type: object
+      required: [state, currentWaypoint, totalWaypoints, progress]
+      properties:
+        state:
+          type: string
+          enum: [IDLE, IN_PROGRESS, PAUSED, COMPLETED, FAILED]
+          example: IN_PROGRESS
+        currentWaypoint:
+          type: integer
+          minimum: 0
+          example: 7
+        totalWaypoints:
+          type: integer
+          minimum: 0
+          example: 12
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          example: 68
+    ModuleId:
+      type: string
+      enum: [cam_yolo, coordinate, yaw_align, gripper, mission_upload, payload_release]
+    Module:
+      type: object
+      required: [id, active]
+      properties:
+        id:
+          $ref: "#/components/schemas/ModuleId"
+        active:
+          type: boolean
+          example: true
+    Telemetry:
+      type: object
+      required: [gpsSatellites, telemetryLink, throttle, altitude, airspeed]
+      properties:
+        gpsSatellites:
+          type: integer
+          example: 16
+        telemetryLink:
+          type: number
+          description: 통신 링크 품질(%)
+          example: 98
+        throttle:
+          type: number
+          description: 모터 출력(%)
+          example: 42
+        altitude:
+          type: number
+          description: Home 기준 상대 고도(m)
+          example: 124.8
+        airspeed:
+          type: number
+          description: 보정 대기 속도(m/s)
+          example: 18.6
+    GroundStationStatus:
+      type: object
+      required: [flightMode, vtolState, mission, modules, telemetry, updatedAt]
+      properties:
+        flightMode:
+          $ref: "#/components/schemas/FlightMode"
+        vtolState:
+          $ref: "#/components/schemas/VtolState"
+        mission:
+          $ref: "#/components/schemas/Mission"
+        modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/Module"
+        telemetry:
+          $ref: "#/components/schemas/Telemetry"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-07-25T15:30:00+09:00"
+    CommandResult:
+      type: object
+      required: [accepted, commandId]
+      properties:
+        accepted:
+          type: boolean
+          example: true
+        commandId:
+          type: string
+          format: uuid
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: BRIDGE_UNAVAILABLE
+        message:
+          type: string
+          example: PX4 bridge is not connected
