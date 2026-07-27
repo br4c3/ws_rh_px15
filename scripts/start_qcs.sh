@@ -5,6 +5,11 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 QCS_ROOT="$PROJECT_ROOT/qcs"
 DEFAULT_JETSON_GCS_URL="http://192.168.144.26:8765"
+QCS_VIDEO_BIND_ADDRESS="${QCS_VIDEO_BIND_ADDRESS:-0.0.0.0}"
+QCS_VIDEO_PORT="${QCS_VIDEO_PORT:-5600}"
+QCS_VIDEO_WIDTH="${QCS_VIDEO_WIDTH:-1280}"
+QCS_VIDEO_HEIGHT="${QCS_VIDEO_HEIGHT:-720}"
+QCS_VIDEO_FPS="${QCS_VIDEO_FPS:-15}"
 
 if [[ ! -d "$QCS_ROOT/node_modules" ]]; then
   echo "QCS dependencies are missing. Run: cd qcs && npm install" >&2
@@ -44,10 +49,17 @@ if [[ -z "${QGC_PATH:-}" ]]; then
 fi
 
 export JETSON_GCS_URL="${JETSON_GCS_URL:-$DEFAULT_JETSON_GCS_URL}"
+export \
+  QCS_VIDEO_BIND_ADDRESS \
+  QCS_VIDEO_PORT \
+  QCS_VIDEO_WIDTH \
+  QCS_VIDEO_HEIGHT \
+  QCS_VIDEO_FPS
 
 echo "Starting QCS"
 echo "  Node: $(node --version)"
 echo "  Jetson gateway: $JETSON_GCS_URL"
+echo "  QGC video: RTP/H.264 ${QCS_VIDEO_BIND_ADDRESS}:${QCS_VIDEO_PORT} (${QCS_VIDEO_WIDTH}x${QCS_VIDEO_HEIGHT} @ ${QCS_VIDEO_FPS} fps)"
 
 if command -v curl >/dev/null 2>&1; then
   gateway_health="$(

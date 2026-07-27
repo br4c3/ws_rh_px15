@@ -159,6 +159,42 @@ QCS 실행:
 ./scripts/start_qcs.sh
 ```
 
+QCS의 `카메라` 탭은 기본적으로 노트북의 UDP `5600` 포트에 들어오는
+RTP/H.264 영상을 `1280x720`, 최대 `15 FPS`로 표시합니다. 영상 송신 대상은
+노트북 주소 `192.168.144.131:5600`으로 설정합니다. 노트북 방화벽에서도 UDP
+`5600` 수신을 허용해야 합니다.
+
+```bash
+sudo ufw allow 5600/udp
+```
+
+해상도나 포트가 달라질 때는 실행 환경 변수로 바꿀 수 있습니다.
+
+```bash
+QCS_VIDEO_PORT=5600 \
+QCS_VIDEO_WIDTH=1280 \
+QCS_VIDEO_HEIGHT=720 \
+QCS_VIDEO_FPS=15 \
+./scripts/start_qcs.sh
+```
+
+영상 디코딩에는 GStreamer가 필요합니다.
+
+```bash
+sudo apt install -y \
+  gstreamer1.0-tools \
+  gstreamer1.0-plugins-base \
+  gstreamer1.0-plugins-good \
+  gstreamer1.0-plugins-bad \
+  gstreamer1.0-plugins-ugly \
+  gstreamer1.0-libav
+```
+
+QGC 자체도 같은 PC에서 UDP `5600`을 수신하도록 켜면 두 프로그램이 같은
+유니캐스트 포트를 동시에 사용할 수 없습니다. QCS에서 영상을 볼 때는 QGC의
+비디오 수신을 끄거나, 송신 측에서 QGC용 스트림을 다른 포트로 하나 더 보내야
+합니다.
+
 스크립트는 `node`와 `npm`이 PATH에 없으면 `~/.nvm/nvm.sh`를 자동으로
 불러옵니다. Jetson 주소가 기본값 `192.168.144.26`과 다르면 다음처럼
 지정합니다.

@@ -54,6 +54,7 @@ const contentTypes = {
 let server;
 let rosBridge;
 let cameraBridge;
+let cameraStatusTimer;
 let qgcProcess;
 let mavrosProcess;
 let missionProcess;
@@ -363,7 +364,7 @@ function startCameraBridge() {
   const bridgePath = path.join(
     projectRoot,
     "bridge",
-    "gazebo_camera_bridge.py",
+    "udp_camera_bridge.py",
   );
   const virtualEnvironmentPython = path.join(
     projectRoot,
@@ -387,6 +388,7 @@ function startCameraBridge() {
 
   let frameBuffer = Buffer.alloc(0);
   let cameraConnected = false;
+  let lastCameraFrameTime = 0;
 
   cameraBridge.stdout.on("data", (chunk) => {
     frameBuffer = Buffer.concat([frameBuffer, chunk]);
@@ -394,17 +396,24 @@ function startCameraBridge() {
     while (frameBuffer.length >= 4) {
       const frameLength = frameBuffer.readUInt32BE(0);
 
+      if (frameLength <= 0 || frameLength > 16 * 1024 * 1024) {
+        console.error(`[UDP camera] Invalid JPEG frame length: ${frameLength}`);
+        frameBuffer = Buffer.alloc(0);
+        break;
+      }
+
       if (frameBuffer.length < frameLength + 4) {
         break;
       }
 
       const frame = frameBuffer.subarray(4, frameLength + 4);
       frameBuffer = frameBuffer.subarray(frameLength + 4);
+      lastCameraFrameTime = Date.now();
 
       if (!cameraConnected) {
         cameraConnected = true;
         console.log(
-          `[Gazebo camera] Streaming JPEG frames (${frame.length} bytes first frame)`,
+          `[UDP camera] Streaming JPEG frames (${frame.length} bytes first frame)`,
         );
         broadcast("gazebo:camera-status", true);
       }
@@ -414,17 +423,25 @@ function startCameraBridge() {
   });
 
   cameraBridge.stderr.on("data", (chunk) => {
-    console.log(`[Gazebo camera] ${chunk.toString().trim()}`);
+    console.log(`[UDP camera] ${chunk.toString().trim()}`);
   });
 
   cameraBridge.on("error", (error) => {
-    console.error(`[Gazebo camera] Failed to start: ${error.message}`);
+    console.error(`[UDP camera] Failed to start: ${error.message}`);
     broadcast("gazebo:camera-status", false);
   });
 
   cameraBridge.on("exit", () => {
+    cameraConnected = false;
     broadcast("gazebo:camera-status", false);
   });
+
+  cameraStatusTimer = setInterval(() => {
+    if (cameraConnected && Date.now() - lastCameraFrameTime > 2500) {
+      cameraConnected = false;
+      broadcast("gazebo:camera-status", false);
+    }
+  }, 500);
 }
 
 function qgcExecutablePath() {
@@ -847,6 +864,7 @@ app.whenReady().then(async () => {
   console.log(`[Jetson gateway] Remote mode: ${jetsonGcsUrl}`);
   startJetsonTelemetry();
   createWindow(baseUrl);
+  startCameraBridge();
   setTimeout(launchQGroundControl, 1500);
   startQgcCapture();
 
@@ -872,6 +890,9 @@ app.on("before-quit", () => {
   missionProcess?.kill("SIGTERM");
   if (qgcCaptureTimer) {
     clearInterval(qgcCaptureTimer);
+  }
+  if (cameraStatusTimer) {
+    clearInterval(cameraStatusTimer);
   }
   if (jetsonPollTimer) {
     clearInterval(jetsonPollTimer);

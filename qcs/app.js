@@ -977,8 +977,8 @@ function updateCameraStatus(connected) {
     connected,
   );
   document.querySelector("#cameraMeta").textContent = connected
-    ? "Gazebo 하향 카메라 · YOLO 트레이 탐지"
-    : "시뮬레이션 · 대기 중";
+    ? "QGC 영상 · RTP/H.264 · 1280×720 · 15 FPS"
+    : "UDP 5600 · 영상 대기 중";
 }
 
 /*

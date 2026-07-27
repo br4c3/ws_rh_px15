@@ -61,7 +61,7 @@
             <div class="display-toolbar">
               <div>
                 <span class="live-badge"><i></i> 실시간</span>
-                <span class="camera-name">카메라 01 · 하향</span>
+                <span class="camera-name">카메라 01 · QGC 영상</span>
               </div>
               <div class="flight-strip">
                 <span class="flight-strip-label">비행 모드</span>
@@ -86,7 +86,7 @@
 
             <div class="viewport" id="viewport">
               <div class="camera-view view active" data-panel="camera">
-                <img id="gazeboCamera" alt="Gazebo 기체 하향 카메라 실시간 영상" />
+                <img id="gazeboCamera" alt="QGC RTP 카메라 실시간 영상" />
                 <div class="reticle"><span></span><i></i><b></b></div>
                 <div class="hud left-hud">
                   <span>고도</span><strong id="hudAltitude">—</strong><small>미터</small>
@@ -96,9 +96,9 @@
                 </div>
                 <div class="camera-offline" id="cameraOffline">
                   <strong>카메라 대기 중</strong>
-                  <span>Gazebo 영상 토픽을 기다리고 있습니다</span>
+                  <span>UDP 5600 RTP/H.264 영상을 기다리고 있습니다</span>
                 </div>
-                <div class="camera-meta" id="cameraMeta">시뮬레이션 · 대기 중</div>
+                <div class="camera-meta" id="cameraMeta">UDP 5600 · 대기 중</div>
               </div>
 
               <div class="map-view view" data-panel="qgc">
